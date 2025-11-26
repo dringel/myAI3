@@ -73,6 +73,23 @@ export default function Chat() {
   const stored = typeof window !== 'undefined' ? loadMessagesFromStorage() : { messages: [], durations: {} };
   const [initialMessages] = useState<UIMessage[]>(stored.messages);
 
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      e.target.value = "";
+      return;
+    }
+
+    setSelectedImage(file);
+  }
+
+
   const { messages, sendMessage, status, stop, setMessages } = useChat({
     messages: initialMessages,
   });
@@ -201,43 +218,72 @@ export default function Chat() {
                           Message
                         </FieldLabel>
                         <div className="relative h-13">
-                          <Input
-                            {...field}
-                            id="chat-form-message"
-                            className="h-15 pr-15 pl-5 bg-card rounded-[20px]"
-                            placeholder="Type your message here..."
-                            disabled={status === "streaming"}
-                            aria-invalid={fieldState.invalid}
-                            autoComplete="off"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                form.handleSubmit(onSubmit)();
-                              }
-                            }}
-                          />
-                          {(status == "ready" || status == "error") && (
-                            <Button
-                              className="absolute right-3 top-3 rounded-full"
-                              type="submit"
-                              disabled={!field.value.trim()}
-                              size="icon"
-                            >
-                              <ArrowUp className="size-4" />
-                            </Button>
-                          )}
-                          {(status == "streaming" || status == "submitted") && (
-                            <Button
-                              className="absolute right-2 top-2 rounded-full"
-                              size="icon"
-                              onClick={() => {
-                                stop();
-                              }}
-                            >
-                              <Square className="size-4" />
-                            </Button>
-                          )}
-                        </div>
+  {/* Hidden file input for images */}
+  <input
+    ref={imageInputRef}
+    type="file"
+    accept="image/*"
+    className="hidden"
+    onChange={handleImageChange}
+  />
+
+  {/* Tiny text preview of selected image */}
+  {selectedImage && (
+    <div className="absolute left-3 -top-6 text-[11px] text-muted-foreground truncate max-w-[60%]">
+      Image attached: {selectedImage.name}
+    </div>
+  )}
+
+  {/* Upload button on the left inside the input */}
+  <Button
+    type="button"
+    size="icon"
+    className="absolute left-2 top-2 rounded-full"
+    onClick={() => imageInputRef.current?.click()}
+  >
+    <PlusIcon className="size-4" />
+  </Button>
+
+  <Input
+    {...field}
+    id="chat-form-message"
+    className="h-15 pr-15 pl-11 bg-card rounded-[20px]"   {/* note: pl-11 to make room for the button */}
+    placeholder="Type your message here..."
+    disabled={status === "streaming"}
+    aria-invalid={fieldState.invalid}
+    autoComplete="off"
+    onKeyDown={(e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        form.handleSubmit(onSubmit)();
+      }
+    }}
+  />
+
+  {(status == "ready" || status == "error") && (
+    <Button
+      className="absolute right-3 top-3 rounded-full"
+      type="submit"
+      disabled={!field.value.trim()}
+      size="icon"
+    >
+      <ArrowUp className="size-4" />
+    </Button>
+  )}
+
+  {(status == "streaming" || status == "submitted") && (
+    <Button
+      className="absolute right-2 top-2 rounded-full"
+      size="icon"
+      onClick={() => {
+        stop();
+      }}
+    >
+      <Square className="size-4" />
+    </Button>
+  )}
+</div>
+
                       </Field>
                     )}
                   />
