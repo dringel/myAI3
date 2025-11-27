@@ -12,244 +12,335 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+// Adjust this import if your project uses a different package name for the chat hook.
 import { useChat } from "@ai-sdk/react";
-import { ArrowUp, Eraser, Loader2, Plus, PlusIcon, Square } from "lucide-react";
+import { ArrowUp, Loader2, Plus, Square } from "lucide-react";
 import { MessageWall } from "@/components/messages/message-wall";
-import { ChatHeader } from "@/app/parts/chat-header";
-import { ChatHeaderBlock } from "@/app/parts/chat-header";
+import { ChatHeader, ChatHeaderBlock } from "@/app/parts/chat-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UIMessage } from "ai";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { AI_NAME, CLEAR_CHAT_TEXT, OWNER_NAME, WELCOME_MESSAGE } from "@/config";
 import Image from "next/image";
 import Link from "next/link";
 
+import { getOrCreateSessionKey } from "@/lib/session-client";
+
 const formSchema = z.object({
-  message: z
-    .string()
-    .min(1, "Message cannot be empty.")
-    .max(2000, "Message must be at most 2000 characters."),
+  message: z.string().min(1).max(2000),
 });
 
-const STORAGE_KEY = 'chat-messages';
-
-type StorageData = {
-  messages: UIMessage[];
-  durations: Record<string, number>;
-};
-
-const loadMessagesFromStorage = (): { messages: UIMessage[]; durations: Record<string, number> } => {
-  if (typeof window === 'undefined') return { messages: [], durations: {} };
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return { messages: [], durations: {} };
-
-    const parsed = JSON.parse(stored);
-    return {
-      messages: parsed.messages || [],
-      durations: parsed.durations || {},
-    };
-  } catch (error) {
-    console.error('Failed to load messages from localStorage:', error);
-    return { messages: [], durations: {} };
-  }
-};
-
-const saveMessagesToStorage = (messages: UIMessage[], durations: Record<string, number>) => {
-  if (typeof window === 'undefined') return;
-  try {
-    const data: StorageData = { messages, durations };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save messages to localStorage:', error);
-  }
-};
+const STORAGE_KEY = "chat-messages";
 
 export default function Chat() {
   const [isClient, setIsClient] = useState(false);
   const [durations, setDurations] = useState<Record<string, number>>({});
-  const welcomeMessageShownRef = useRef<boolean>(false);
 
-  const stored = typeof window !== 'undefined' ? loadMessagesFromStorage() : { messages: [], durations: {} };
-  const [initialMessages] = useState<UIMessage[]>(stored.messages);
+  // Defensive localStorage read
+  const safeReadStored = (): { messages: UIMessage[]; durations: Record<string, number> } => {
+    try {
+      if (typeof window === "undefined") return { messages: [], durations: {} };
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { messages: [], durations: {} };
+      const parsed = JSON.parse(raw);
+      return {
+        messages: Array.isArray(parsed.messages) ? parsed.messages : [],
+        durations: parsed.durations || {},
+      };
+    } catch (err) {
+      try {
+        if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
+      } catch {}
+      return { messages: [], durations: {} };
+    }
+  };
 
-  const { messages, sendMessage, status, stop, setMessages } = useChat({
+  const stored = safeReadStored();
+  const [initialMessages] = useState<UIMessage[]>(stored.messages || []);
+
+  // Relaxed typing for useChat to avoid mismatches across SDK versions.
+  const chatHook = useChat({
     messages: initialMessages,
-  });
+  }) as {
+    messages: UIMessage[];
+    sendMessage: (...args: any[]) => Promise<any>;
+    status: "ready" | "streaming" | "submitted" | "error";
+    stop: () => void;
+    setMessages: (m: UIMessage[]) => void;
+  };
+
+  const { messages, sendMessage, status, stop, setMessages } = chatHook;
 
   useEffect(() => {
     setIsClient(true);
-    setDurations(stored.durations);
-    setMessages(stored.messages);
+    setDurations(stored.durations || {});
+    try {
+      setMessages(stored.messages || []);
+    } catch {
+      // ignore if setMessages signature is stricter in this SDK version
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Listen to vendor card actions emitted from MessageWall and forward to sendMessage
   useEffect(() => {
-    if (isClient) {
-      saveMessagesToStorage(messages, durations);
+    function handleMoreDetails(e: any) {
+      const vendorName = e?.detail?.vendorName;
+      if (!vendorName) return;
+      try {
+        sendMessage({
+          text: `More details on ${vendorName}`,
+          metadata: { sessionKey: getOrCreateSessionKey() },
+        });
+      } catch (err) {
+        // best-effort; ignore errors here
+      }
     }
-  }, [durations, messages, isClient]);
 
-  const handleDurationChange = (key: string, duration: number) => {
-    setDurations((prevDurations) => {
-      const newDurations = { ...prevDurations };
-      newDurations[key] = duration;
-      return newDurations;
-    });
-  };
+    function handleReviews(e: any) {
+      const vendorName = e?.detail?.vendorName;
+      if (!vendorName) return;
+      try {
+        sendMessage({
+          text: `Reviews for ${vendorName}`,
+          metadata: { sessionKey: getOrCreateSessionKey() },
+        });
+      } catch (err) {
+        // ignore
+      }
+    }
 
+    window.addEventListener("chat_action_more_details", handleMoreDetails);
+    window.addEventListener("chat_action_reviews", handleReviews);
+
+    return () => {
+      window.removeEventListener("chat_action_more_details", handleMoreDetails);
+      window.removeEventListener("chat_action_reviews", handleReviews);
+    };
+  }, [sendMessage]);
+
+  // persist messages & durations defensively
   useEffect(() => {
-    if (isClient && initialMessages.length === 0 && !welcomeMessageShownRef.current) {
-      const welcomeMessage: UIMessage = {
+    if (!isClient) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, durations }));
+    } catch {
+      // ignore write errors (private mode, quota)
+    }
+  }, [messages, durations, isClient]);
+
+  // Show welcome message whenever the active message list is empty
+  // (this makes the welcome show every time a NEW chat is created / cleared)
+  useEffect(() => {
+    if (!isClient) return;
+
+    if (Array.isArray(messages) && messages.length === 0) {
+      const welcomeMsg: UIMessage = {
         id: `welcome-${Date.now()}`,
         role: "assistant",
-        parts: [
-          {
-            type: "text",
-            text: WELCOME_MESSAGE,
-          },
-        ],
+        parts: [{ type: "text", text: WELCOME_MESSAGE }],
       };
-      setMessages([welcomeMessage]);
-      saveMessagesToStorage([welcomeMessage], {});
-      welcomeMessageShownRef.current = true;
+      try {
+        setMessages([welcomeMsg]);
+      } catch {
+        // some SDK versions restrict setMessages shape — best-effort
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages: [welcomeMsg], durations: {} }));
+      } catch {}
     }
-  }, [isClient, initialMessages.length, setMessages]);
+    // Only react to the live messages list and client-state
+  }, [isClient, messages.length, setMessages]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      message: "",
-    },
+    defaultValues: { message: "" },
   });
 
+  const clearChat = () => {
+    try {
+      setMessages([]);
+    } catch {}
+    setDurations({});
+    try {
+      if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
+    } catch {}
+    toast.success("Chat cleared");
+  };
+
   function onSubmit(data: z.infer<typeof formSchema>) {
-    sendMessage({ text: data.message });
+    // Pass sessionKey inside metadata to align with sendMessage types
+    // sendMessage typing is permissive above so this call should compile across SDK versions
+    sendMessage({
+      text: data.message,
+      metadata: { sessionKey: getOrCreateSessionKey() },
+    });
     form.reset();
   }
 
-  function clearChat() {
-    const newMessages: UIMessage[] = [];
-    const newDurations = {};
-    setMessages(newMessages);
-    setDurations(newDurations);
-    saveMessagesToStorage(newMessages, newDurations);
-    toast.success("Chat cleared");
-  }
-
   return (
-    <div className="flex h-screen items-center justify-center font-sans dark:bg-black">
-      <main className="w-full dark:bg-black h-screen relative">
-        <div className="fixed top-0 left-0 right-0 z-50 bg-linear-to-b from-background via-background/50 to-transparent dark:bg-black overflow-visible pb-16">
-          <div className="relative overflow-visible">
-            <ChatHeader>
-              <ChatHeaderBlock />
-              <ChatHeaderBlock className="justify-center items-center">
-                <Avatar
-                  className="size-8 ring-1 ring-primary"
-                >
+    <div className="flex h-screen justify-center items-center">
+      <main className="w-full h-screen relative">
+        {/* ===== Header (opaque by default) ===== */}
+        <div className="fixed top-0 left-0 right-0 z-50 chat-header">
+          <ChatHeader>
+            <ChatHeaderBlock />
+            <ChatHeaderBlock className="justify-center items-center gap-3">
+              <div className="avatar-premium">
+                <Avatar className="size-10">
                   <AvatarImage src="/logo.png" />
-                  <AvatarFallback>
-                    <Image src="/logo.png" alt="Logo" width={36} height={36} />
+                  <AvatarFallback className="bg-gradient-to-br from-[var(--champagne-gold)] to-[var(--bright-gold)] text-white font-semibold">
+                    V
                   </AvatarFallback>
                 </Avatar>
-                <p className="tracking-tight">Chat with {AI_NAME}</p>
-              </ChatHeaderBlock>
-              <ChatHeaderBlock className="justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer"
-                  onClick={clearChat}
-                >
-                  <Plus className="size-4" />
-                  {CLEAR_CHAT_TEXT}
-                </Button>
-              </ChatHeaderBlock>
-            </ChatHeader>
-          </div>
+              </div>
+              <div className="flex flex-col">
+                <p className="tracking-tight font-semibold text-[var(--deep-plum)] text-base">
+                  Chat with {AI_NAME}
+                </p>
+                <p className="text-xs text-[var(--rich-burgundy)] opacity-75">
+                  Your Wedding Planning Assistant
+                </p>
+              </div>
+            </ChatHeaderBlock>
+
+            <ChatHeaderBlock className="justify-end">
+              <button
+                className="btn-outline-premium"
+                onClick={clearChat}
+                aria-label="New chat"
+                title="Start new chat"
+                type="button"
+              >
+                <Plus className="size-4" />
+                {CLEAR_CHAT_TEXT}
+              </button>
+            </ChatHeaderBlock>
+          </ChatHeader>
         </div>
-        <div className="h-screen overflow-y-auto px-5 py-4 w-full pt-[88px] pb-[150px]">
-          <div className="flex flex-col items-center justify-end min-h-full">
-            {isClient ? (
-              <>
-                <MessageWall messages={messages} status={status} durations={durations} onDurationChange={handleDurationChange} />
-                {status === "submitted" && (
-                  <div className="flex justify-start max-w-3xl w-full">
-                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+
+        {/* ===== Messages Area (centered column) ===== */}
+        <div
+          className="h-screen overflow-y-auto px-4 sm:px-6 py-4"
+          style={{
+            paddingTop: "calc(var(--header-height) + 12px)",
+            paddingBottom: "140px",
+          }}
+        >
+          <div className="flex flex-col items-center">
+            {/* Constrain chat column so messages sit centered on large screens */}
+            <div className="w-full max-w-3xl mx-auto">
+              <div className="chat-card">
+                {isClient ? (
+                  <>
+                    <MessageWall
+                      messages={messages}
+                      status={status}
+                      durations={durations}
+                      onDurationChange={(key: string, duration: number) => {
+                        setDurations((prev) => {
+                          const updated = { ...prev, [key]: duration };
+                          try {
+                            if (typeof window !== "undefined") {
+                              localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, durations: updated }));
+                            }
+                          } catch {}
+                          return updated;
+                        });
+                      }}
+                    />
+                    {status === "submitted" && (
+                      <div className="flex items-center gap-2 mt-4">
+                        <Loader2 className="size-5 animate-spin text-[var(--champagne-gold)]" />
+                        <span className="text-sm text-[var(--rich-burgundy)]">Thinking...</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="size-5 animate-spin text-[var(--champagne-gold)]" />
+                    <span className="text-sm text-[var(--rich-burgundy)]">Loading...</span>
                   </div>
                 )}
-              </>
-            ) : (
-              <div className="flex justify-center max-w-2xl w-full">
-                <Loader2 className="size-4 animate-spin text-muted-foreground" />
               </div>
-            )}
-          </div>
-        </div>
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-linear-to-t from-background via-background/50 to-transparent dark:bg-black overflow-visible pt-13">
-          <div className="w-full px-5 pt-5 pb-1 items-center flex justify-center relative overflow-visible">
-            <div className="message-fade-overlay" />
-            <div className="max-w-3xl w-full">
-              <form id="chat-form" onSubmit={form.handleSubmit(onSubmit)}>
-                <FieldGroup>
-                  <Controller
-                    name="message"
-                    control={form.control}
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="chat-form-message" className="sr-only">
-                          Message
-                        </FieldLabel>
-                        <div className="relative h-13">
-                          <Input
-                            {...field}
-                            id="chat-form-message"
-                            className="h-15 pr-15 pl-5 bg-card rounded-[20px]"
-                            placeholder="Type your message here..."
-                            disabled={status === "streaming"}
-                            aria-invalid={fieldState.invalid}
-                            autoComplete="off"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                form.handleSubmit(onSubmit)();
-                              }
-                            }}
-                          />
-                          {(status == "ready" || status == "error") && (
-                            <Button
-                              className="absolute right-3 top-3 rounded-full"
-                              type="submit"
-                              disabled={!field.value.trim()}
-                              size="icon"
-                            >
-                              <ArrowUp className="size-4" />
-                            </Button>
-                          )}
-                          {(status == "streaming" || status == "submitted") && (
-                            <Button
-                              className="absolute right-2 top-2 rounded-full"
-                              size="icon"
-                              onClick={() => {
-                                stop();
-                              }}
-                            >
-                              <Square className="size-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </Field>
-                    )}
-                  />
-                </FieldGroup>
-              </form>
             </div>
           </div>
-          <div className="w-full px-5 py-3 items-center flex justify-center text-xs text-muted-foreground">
-            © {new Date().getFullYear()} {OWNER_NAME}&nbsp;<Link href="/terms" className="underline">Terms of Use</Link>&nbsp;Powered by&nbsp;<Link href="https://ringel.ai/" className="underline">Ringel.AI</Link>
+        </div>
+
+        {/* ===== Premium Input Bar (fixed bottom) ===== */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 glass-footer pb-4 pt-4">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6">
+            <form id="chat-form" onSubmit={form.handleSubmit(onSubmit)}>
+              <FieldGroup>
+                <Controller
+                  name="message"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel className="sr-only">Message</FieldLabel>
+
+                      {/* ---------------------------
+                          INPUT ROW: button INSIDE pill
+                          --------------------------- */}
+                      <div className="relative flex items-center">
+                        {/* The pill is the positioned container so the button is anchored inside it */}
+                        <div className="input-premium w-full relative">
+                          <Input
+                            {...field}
+                            placeholder="Ask about venues, vendors, or budget planning..."
+                            className="h-14 pl-4 pr-6 w-full bg-transparent"
+                            disabled={status === "streaming"}
+                            aria-label="Message"
+                          />
+
+                          {(status === "ready" || status === "error") && (
+                            <button
+                              type="submit"
+                              disabled={!field.value?.trim()}
+                              className="btn-premium absolute"
+                              style={{ right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}
+                              aria-label="Send message"
+                            >
+                              <ArrowUp className="size-5" />
+                            </button>
+                          )}
+
+                          {(status === "streaming" || status === "submitted") && (
+                            <button
+                              type="button"
+                              className="btn-premium absolute"
+                              style={{
+                                right: 12,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                zIndex: 10,
+                                background: "linear-gradient(135deg, #4B1633, #6B2D4A)",
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                stop();
+                              }}
+                              aria-label="Stop generation"
+                            >
+                              <Square className="size-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
+            </form>
+          </div>
+
+          <div className="footer-premium mt-3">
+            © {new Date().getFullYear()} {OWNER_NAME} •{" "}
+            <Link href="/terms">Terms</Link>
+            {" "}• Powered by Vivaah AI
           </div>
         </div>
       </main>
-    </div >
+    </div>
   );
 }

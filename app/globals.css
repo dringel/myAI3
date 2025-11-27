@@ -3,124 +3,410 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
+/* =========================
+   PREMIUM VIVAAH GLOBALS (POPPIER) - FIXED
+   - "More details" (btn-premium) now uses a strong purple treatment
+   - Defensive overrides for any "secondary" variant that was producing a washed light-purple
+   - Added a specific .more-details-btn selector for vendor-card usage
+   ========================= */
 
+/* ---- Color tokens (jewel + tuned rose-gold / pop) ---- */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.995 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.1 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Jewel / purple base (deeper for contrast) */
+  --deep-plum: #4A0D2B;        /* tuned to a stronger, solid purple */
+  --rich-burgundy: #7a1f3f;    /* slightly brighter than before for accents */
+  --pearl-white: #fffcf9;
+  --cream-luxury: #fbf6f2;
+  --blush-rose: #f7e6e8;
+  --soft-blush: #fff8f9;
+  --accent-teal: #2c8c90;
+
+  /* Tuned rose-gold palette (kept for accents) */
+  --champagne-gold: #d89f85; /* mid tone */
+  --bright-gold:   #f0cdbf; /* highlight / sheen */
+  --warm-gold:     #b86e53; /* shadow / depth */
+
+  /* Compatibility */
+  --cream-bg: var(--cream-luxury);
+  --cream-bg-2: var(--pearl-white);
+  --text-maroon: var(--deep-plum);
+  --gold-1: var(--champagne-gold);
+  --gold-2: var(--bright-gold);
+
+  /* ShadCN mapped colors */
+  --background: var(--cream-luxury);
+  --foreground: var(--deep-plum);
+
+  --card: var(--pearl-white);
+  --card-foreground: var(--deep-plum);
+
+  --primary: var(--champagne-gold);
+  --primary-foreground: #fff;
+
+  /* Keep secondary token but avoid using the washed blush for action buttons */
+  --secondary: var(--blush-rose);
+  --secondary-foreground: var(--deep-plum);
+
+  --muted: #f3eae7;
+  --muted-foreground: var(--rich-burgundy);
+
+  --border: rgba(216,160,130,0.14);
+  --input: rgba(216,160,130,0.12);
+  --ring: var(--champagne-gold);
+
+  --radius: 1rem;
+
+  /* layout tokens */
+  --header-height: 72px;
+  --input-button-gap: 3.8rem; /* reserve space in pill for send button */
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/* ===== Base & background ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  
-  .single-char-link {
-    @apply bg-card text-card-foreground px-2 py-1 rounded-full hover:underline hover:scale-105 transition-all duration-100 !text-foreground !no-underline border-input border;
-  }
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(160deg, var(--cream-luxury) 0%, var(--pearl-white) 48%, var(--soft-blush) 100%);
+  color: var(--deep-plum);
+  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-feature-settings: "kern" 1;
+  -moz-font-feature-settings: "kern" 1;
+}
+
+/* ===== Header variants ===== */
+.chat-header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  background: var(--cream-bg);
+  border-bottom: 1px solid rgba(184,110,83,0.12);
+  box-shadow: 0 1px 0 rgba(75,22,51,0.03);
+  padding: 0 1rem;
+}
+
+/* glass if you prefer it */
+.glass-header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(255,252,249,0.98), rgba(255,252,249,0.94));
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border-bottom: 1px solid rgba(216,160,130,0.08);
+  box-shadow: 0 3px 18px rgba(75,22,51,0.04);
+  padding: 0 1rem;
+}
+
+/* ===== Avatar premium ===== */
+.avatar-premium {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 4px;
+  box-shadow:
+    0 4px 20px rgba(184,110,83,0.12),
+    0 2px 6px rgba(75,22,51,0.06);
+}
+.avatar-premium::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--bright-gold), var(--champagne-gold));
+  z-index: -1;
+  opacity: 0.25;
+  filter: blur(8px);
+}
+
+/* ===== Chat card (centered container) ===== */
+.chat-card {
+  width: 100%;
+  max-width: 56rem; /* 896px */
+  margin: 0 auto;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.998));
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid rgba(216,160,130,0.07);
+  box-shadow: 0 12px 40px rgba(75,22,51,0.06);
+}
+
+/* ===== Message bubbles ===== */
+
+/* user (right) */
+.message-user-premium {
+  background: linear-gradient(135deg, var(--deep-plum) 0%, var(--rich-burgundy) 100%);
+  color: #fff;
+  border-radius: 22px 22px 6px 22px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  box-shadow:
+    0 10px 30px rgba(75,22,51,0.22),
+    inset 0 1px 0 rgba(255,255,255,0.03);
+  max-width: 78%;
+  align-self: flex-end;
+  font-size: 0.96rem;
+  line-height: 1.45;
+  position: relative;
+  overflow: hidden;
+}
+
+/* assistant (left) */
+.message-assistant-premium {
+  background: linear-gradient(135deg, var(--pearl-white) 0%, var(--soft-blush) 100%);
+  color: var(--deep-plum);
+  border-radius: 22px 22px 22px 6px;
+  padding: 14px 18px;
+  margin: 8px 0;
+  border-left: 4px solid transparent;
+  border-image: linear-gradient(180deg, var(--bright-gold), var(--champagne-gold)) 1;
+  box-shadow:
+    0 8px 26px rgba(75,22,51,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+  max-width: 86%;
+  align-self: flex-start;
+  font-size: 0.96rem;
+  line-height: 1.6;
+}
+
+/* streaming shimmer */
+.message-assistant-premium.streaming { position: relative; overflow: hidden; }
+.message-assistant-premium.streaming::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(240,205,191,0.22) 48%, transparent 100%);
+  transform: translateX(-120%);
+  animation: premium-shimmer 1.8s linear infinite;
+}
+@keyframes premium-shimmer { 0% { transform: translateX(-120%);} 60% { transform: translateX(120%);} 100% { transform: translateX(120%);} }
+
+/* system / small */
+.message-system { color: rgba(75,22,51,0.6); font-size: 0.85rem; text-align: center; padding: 8px 0; }
+
+/* ===== Input / pill / button ===== */
+
+/* ensure the pill reserves space for circular button */
+.input-pill, .input-premium {
+  border-radius: 999px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding-left: 1rem;
+  padding-right: calc(var(--input-button-gap) + 0.75rem);
+  background: var(--pearl-white);
+  border: 1px solid rgba(216,160,130,0.12);
+  box-shadow: 0 8px 26px rgba(75,22,51,0.04);
+  position: relative;
+  transition: box-shadow 180ms ease, transform 120ms ease;
+}
+
+/* the form input itself */
+.input-premium input,
+.input-premium textarea,
+.input-pill input,
+.input-pill textarea {
+  width: 100%;
+  border: none !important;
+  background: transparent !important;
+  font-size: 1rem;
+  color: var(--deep-plum);
+  padding: 0.25rem 0;
+}
+.input-premium input:focus,
+.input-premium textarea:focus {
+  outline: none;
+  box-shadow: 0 8px 30px rgba(216,160,130,0.10);
+  transform: translateY(-1px);
+}
+
+/* ============================
+   FIX: "More details" visual
+   - .btn-premium converted to strong purple treatment
+   - Hover/active states tuned for clear affordance
+   ============================ */
+
+/* Send / stop circular button (keeps rose-gold look for send) */
+.btn-premium, .button-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff !important;
+  border: none !important;
+  z-index: 30;
+  box-shadow: 0 10px 30px rgba(184,110,83,0.16), inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: transform 160ms ease, filter 160ms ease;
+}
+
+/* Keep send button's rose-gold style (maintain contrast with purple CTAs) */
+.btn-premium.send {
+  background: linear-gradient(135deg, var(--bright-gold) 0%, var(--champagne-gold) 45%, var(--warm-gold) 100%);
+}
+.btn-premium.send:hover { transform: translateY(-50%) scale(1.04); }
+
+/* Primary change: "More details" should be a purple CTA - use .btn-premium.purple or generic .btn-premium override where needed */
+/* Prefer using class="btn-premium purple" in markup; defensive fallback below forces purple if .btn-premium used alone */
+
+.btn-premium.purple,
+.btn-premium.more-details,
+.btn-premium.primary-purple {
+  background: linear-gradient(135deg, var(--deep-plum) 0%, var(--rich-burgundy) 80%);
+  color: #fff !important;
+  box-shadow: 0 10px 30px rgba(74, 12, 35, 0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+  border: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.btn-premium.purple:hover,
+.btn-premium.more-details:hover,
+.btn-premium.primary-purple:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 14px 40px rgba(74, 12, 35, 0.28);
+}
+
+/* Defensive: if vendor card uses a specific more-details class name */
+.vendor-card-premium .more-details-btn,
+.vendor-card-premium .btn-more-details {
+  background: linear-gradient(135deg, var(--deep-plum) 0%, var(--rich-burgundy) 80%) !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 10px 22px;
+  font-weight: 700;
+  border-radius: 24px;
+  box-shadow: 0 8px 30px rgba(74, 12, 35, 0.18);
+  transition: all 0.2s ease;
+}
+.vendor-card-premium .more-details-btn:hover,
+.vendor-card-premium .btn-more-details:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 36px rgba(74, 12, 35, 0.22);
+}
+
+/* placeholder */
+::placeholder { color: rgba(64,16,42,0.42); }
+
+/* ===== Buttons & outlines ===== */
+
+/* ---- Solid purple outline variant with hover fill (Reviews) ---- */
+.btn-outline-premium {
+  background: transparent;
+  color: var(--deep-plum);                  /* strong purple text */
+  border: 2px solid var(--deep-plum);       /* solid purple border for clarity */
+  border-radius: 24px;
+  padding: 10px 22px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.22s ease-in-out;
+  box-shadow: 0 2px 6px rgba(74, 12, 35, 0.06);
+}
+
+/* Hover: solid purple fill, white text */
+.btn-outline-premium:hover {
+  background: var(--deep-plum);
+  border-color: var(--deep-plum);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(74, 12, 35, 0.16);
+}
+
+/* Active/pressed state */
+.btn-outline-premium:active {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 3px 10px rgba(74, 12, 35, 0.12);
+}
+
+/* Defensive: If your components use a "secondary" button variant (ShadCN / component lib),
+   ensure it doesn't render the washed blush as an action CTA. Override only the interactive variant. */
+button[data-variant="secondary"],
+.btn-secondary,
+.bg-secondary {
+  background: linear-gradient(135deg, var(--deep-plum) 0%, var(--rich-burgundy) 80%) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 8px 28px rgba(74, 12, 35, 0.18) !important;
+}
+
+/* metallic helpers */
+.metallic-gradient { background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, var(--bright-gold) 12%, var(--champagne-gold) 50%, var(--warm-gold) 100%); }
+.metallic-sheen { position: relative; overflow: hidden; }
+.metallic-sheen::after { content: ""; position: absolute; inset: 0; background: linear-gradient(120deg, transparent 18%, rgba(255,255,255,0.45) 35%, transparent 60%); opacity: 0; transition: opacity .36s ease; pointer-events: none; }
+.metallic-sheen:hover::after { opacity: 1; }
+
+/* ===== Vendor card & accents ===== */
+.vendor-card-premium {
+  background: linear-gradient(135deg, var(--pearl-white) 0%, #ffffff 100%);
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid rgba(216,160,130,0.10);
+  box-shadow: 0 12px 36px rgba(75,22,51,0.06);
+  position: relative;
+  overflow: hidden;
+}
+.vendor-card-premium::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--bright-gold), var(--champagne-gold));
+}
+
+/* typography helpers */
+.heading-premium { font-family: var(--font-cormorant), Georgia, serif; font-weight: 600; color: var(--deep-plum); }
+.text-gold-gradient { background: linear-gradient(135deg, var(--champagne-gold), var(--bright-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* rating badges */
+.rating-premium { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 16px; background: linear-gradient(135deg, var(--champagne-gold), var(--bright-gold)); color: #fff; font-weight: 700; box-shadow: 0 6px 20px rgba(184,110,83,0.14); }
+
+/* footer */
+.footer-premium, .footer-small { max-width: 56rem; margin: 0 auto; text-align: center; color: var(--rich-burgundy); padding-top: 10px; font-size: 0.88rem; opacity: 0.95; }
+
+/* scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--bright-gold), var(--warm-gold)); border-radius: 10px; border: 2px solid rgba(255,255,255,0.6); }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--champagne-gold), var(--bright-gold)); }
+
+/* focus */
+:focus-visible { outline: 3px solid rgba(216,160,130,0.18); outline-offset: 2px; border-radius: 6px; }
+
+/* selection */
+::selection { background: rgba(216,160,130,0.18); color: var(--deep-plum); }
+
+/* small animations */
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px);} to { opacity: 1; transform: translateY(0);} }
+.animate-fade-in-up { animation: fadeInUp 0.34s cubic-bezier(.2,.9,.2,1) both; }
+
+/* shimmer */
+@keyframes shimmer { 0%{transform:translateX(-120%);}60%{transform:translateX(120%);}100%{transform:translateX(120%);} }
+
+/* responsive */
+@media (max-width: 640px) {
+  :root { --input-button-gap: 3.2rem; }
+  .input-premium, .input-pill { height: 52px; padding-right: calc(var(--input-button-gap) + 0.5rem); }
+  .btn-premium, .button-icon { width: 40px; height: 40px; right: 0.9rem; }
+  .chat-card { padding: 1rem; border-radius: 12px; }
+  .footer-premium { padding-top: 8px; font-size: 0.82rem; }
 }
